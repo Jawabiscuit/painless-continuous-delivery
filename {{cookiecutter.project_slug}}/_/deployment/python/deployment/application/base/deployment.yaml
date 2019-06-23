@@ -1,0 +1,97 @@
+parameters:
+- name: APP_NAMESPACE
+  required: true
+- name: APP_TAG
+  required: true
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: application
+  labels:
+    app: {{ cookiecutter.project_slug }}
+    component: application
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: {{ cookiecutter.project_slug }}
+      component: application
+  template:
+    metadata:
+      labels:
+        app: {{ cookiecutter.project_slug }}
+        component: application
+    spec:
+      initContainers:
+      - name: ensure-db-ready
+        image: docker-registry.default.svc:5000/${APP_NAMESPACE}/{{ cookiecutter.project_slug }}:${APP_TAG}
+        command: ['python', 'manage.py', 'wait_for_database']
+        env:
+        - name: DJANGO_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: database-url
+              name: postgres
+        - name: DJANGO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              key: secret-key
+              name: application
+      containers:
+      - name: django
+        image: docker-registry.default.svc:5000/${APP_NAMESPACE}/{{ cookiecutter.project_slug }}:${APP_TAG}
+        ports:
+        - name: uwsgi
+          containerPort: 8000
+        env:
+        - name: DJANGO_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: database-url
+              name: postgres
+        - name: DJANGO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              key: secret-key
+              name: application
+        livenessProbe:
+          tcpSocket:
+            port: uwsgi
+          initialDelaySeconds: 13
+        readinessProbe:
+          tcpSocket:
+            port: uwsgi
+          initialDelaySeconds: 9
+        resources:
+          requests:
+            cpu: 500m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+      - name: nginx
+        image: docker-registry.default.svc:5000/${APP_NAMESPACE}/{{ cookiecutter.project_slug }}:${APP_TAG}
+        command: ['nginx']
+        ports:
+        - name: nginx
+          containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: nginx
+          initialDelaySeconds: 13
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: nginx
+          initialDelaySeconds: 9
+        resources:
+          requests:
+            cpu: 100m
+            memory: 32Mi
+          limits:
+            cpu: 200m
+            memory: 64Mi
+      restartPolicy: Always

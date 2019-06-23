@@ -9,6 +9,11 @@ software, locally for development and on remote servers.
 `webserver/ <webserver/>`__
     Web server configuration for the project
 
+`base/ <base/>`__
+    Kustomize base configuration
+`overlays/ <overlays/>`__
+    Kustomize target environment adaptions
+
 See Also
 --------
 
