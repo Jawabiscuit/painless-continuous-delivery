@@ -1,6 +1,6 @@
 {
-    "full_name": "Your name",
-    "email": "your.name@example.com",
+    "full_name": "Jonas Avrin",
+    "email": "jonas@cghijinks.com",
     "project_name": "Name of the project",
     "project_description": "A short description of the project",
     "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '-') }}",
